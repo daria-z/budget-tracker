@@ -82,9 +82,36 @@ export default class BudgetTracker {
     this.updateSummary();
   }
 
-  updateSummary() {}
+  updateSummary() {
+    const total = this.getEntryRows().reduce((total, row) => {
+      const amount = row.querySelector(".input-amount").value;
+      const isExpense = row.querySelector(".input-type").value === "expense";
+      const modifier = isExpense ? -1 : 1;
 
-  saveData() {}
+      return total + amount * modifier;
+    }, 0);
+
+    const totalFormatted = new Intl.NumberFormat("en-EU", {
+      style: "currency",
+      currency: "EUR",
+    }).format(total);
+
+    this.root.querySelector(".total").textContent = totalFormatted;
+  }
+
+  saveData() {
+    const data = this.getEntryRows().map((row) => {
+      return {
+        date: row.querySelector(".input-date").value,
+        description: row.querySelector(".input-description").value,
+        type: row.querySelector(".input-type").value,
+        amount: parseFloat(row.querySelector(".input-amount").value),
+      };
+    });
+
+    localStorage.setItem("budget-entries", JSON.stringify(data));
+    this.updateSummary();
+  }
 
   addEntry(entry = {}) {
     this.root
@@ -98,10 +125,10 @@ export default class BudgetTracker {
       entry.date || new Date().toISOString().replace(/T.*/, "");
     row.querySelector(".input-description").value = entry.description || "";
     row.querySelector(".input-type").value = entry.type || "income";
-    row.querySelector(".input-amount").value = entry.value || 0;
+    row.querySelector(".input-amount").value = entry.amount || 0;
 
     row.querySelector(".delete-entry").addEventListener("click", (e) => {
-      this.onDeleteEntryButtonClick();
+      this.onDeleteEntryButtonClick(e);
     });
 
     row.querySelectorAll(".input").forEach((input) => {
@@ -109,13 +136,16 @@ export default class BudgetTracker {
     });
   }
 
-  getEntryRows() {}
+  getEntryRows() {
+    return Array.from(this.root.querySelectorAll(".entries tr"));
+  }
 
   onNewEntryBtnClick() {
     this.addEntry();
   }
 
-  onDeleteEntryButtonClick() {
-    console.log("this click delet last entry");
+  onDeleteEntryButtonClick(e) {
+    e.target.closest("tr").remove();
+    this.saveData();
   }
 }
